@@ -7,7 +7,10 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlin.math.abs
 
-class AvatarLayoutManager(
+/**
+ * @param orientation 支持的方向
+ */
+class AvatarLayoutManager @JvmOverloads constructor(
     private val orientation: Int = HORIZONTAL,
     private val reverseLayout: Boolean = false,
     private val offset: Int = 1,
@@ -28,9 +31,9 @@ class AvatarLayoutManager(
 
     private var mItemFillDirection: Int = FILL_END
 
-    private var mLastFillCoordinate: Int = 0
+    private var mFillAnchor: Int = 0
 
-    private val mRecycleChildren = mutableListOf<View>()
+    private val mOutChildren = hashSetOf<View>()
 
     override fun generateDefaultLayoutParams(): RecyclerView.LayoutParams {
         return RecyclerView.LayoutParams(
@@ -52,7 +55,7 @@ class AvatarLayoutManager(
             return
         }
 
-        logDebug("state - $state")
+//        logDebug("state - $state")
 
         if (state.isPreLayout) return
 
@@ -63,32 +66,9 @@ class AvatarLayoutManager(
 //        }
         mCurrentPosition = 0
 
-        if (state.isMeasuring) {
-            mAvailable = getTotalSpace()
-//            return
-        }
-
         detachAndScrapAttachedViews(recycler)
 
-//        mAvailable = getTotalSpace()
-        logDebug("totalSpace == ${getTotalSpace()}")
-
-        mLastFillCoordinate = if (orientation == HORIZONTAL) {
-            if (reverseLayout) {
-                width - paddingRight
-            } else {
-                paddingLeft
-            }
-        } else {
-            if (reverseLayout) {
-                height - paddingBottom
-            } else {
-                paddingTop
-            }
-        }
-        fill(getTotalSpace(), recycler, state)
-
-        logDebug("fillLayoutChildren end totalSpace == ${getTotalSpace()}")
+        fillLayout(recycler, state)
 
         logChildren(recycler)
     }
@@ -131,11 +111,11 @@ class AvatarLayoutManager(
             return 0
         }
 
-        logDebug("delta == $delta")
+//        logDebug("delta == $delta")
 
         val consume = fillScroll(delta, recycler, state)
         offsetChildren(-consume)
-        recycleChildren(recycler)
+        recycleChildren(consume, recycler)
 
         logChildren(recycler)
 
@@ -155,13 +135,13 @@ class AvatarLayoutManager(
 
     }
 
-    //自定义工具方法
+    //自定义方法
 
     private fun fill(
         available: Int,
         recycler: RecyclerView.Recycler,
         state: RecyclerView.State
-    ) {
+    ): Int {
         mItemFillDirection = if (available > 0) FILL_END else FILL_START
 
         var remainingSpace = abs(available)
@@ -174,12 +154,15 @@ class AvatarLayoutManager(
                 addView(child, 0)
             }
             measureChildWithMargins(child, 0, 0)
-
             layoutChunk(child)
 
+            logDebug("fill -- ${getPosition(child)}")
+
             remainingSpace -= getItemSpace(child) / 2
-            logDebug("remainingSpace == $remainingSpace")
+//            logDebug("remainingSpace == $remainingSpace")
         }
+
+        return available
     }
 
     private fun layoutChunk(
@@ -191,20 +174,20 @@ class AvatarLayoutManager(
         var bottom = 0
         if (orientation == HORIZONTAL) {
             if (reverseLayout) {
-                right = mLastFillCoordinate
+                right = mFillAnchor
                 left = right - getItemWidth(child)
             } else {
-                left = mLastFillCoordinate
+                left = mFillAnchor
                 right = left + getItemWidth(child)
             }
             top = paddingTop
             bottom = top + getItemHeight(child) - paddingBottom
         } else {
             if (reverseLayout) {
-                bottom = mLastFillCoordinate
+                bottom = mFillAnchor
                 top = bottom - getItemHeight(child)
             } else {
-                top = mLastFillCoordinate
+                top = mFillAnchor
                 bottom = top + getItemHeight(child)
             }
             left = paddingLeft
@@ -215,18 +198,38 @@ class AvatarLayoutManager(
 
         if (orientation == HORIZONTAL) {
             if (reverseLayout) {
-                mLastFillCoordinate -= (getItemWidth(child) / 2 + offset)
+                mFillAnchor -= (getItemWidth(child) / 2 + offset)
             } else {
-                mLastFillCoordinate += (getItemWidth(child) / 2 + offset)
+                mFillAnchor += (getItemWidth(child) / 2 + offset)
             }
         } else {
             if (reverseLayout) {
-                mLastFillCoordinate -= (getItemHeight(child) / 2 + offset)
+                mFillAnchor -= (getItemHeight(child) / 2 + offset)
             } else {
-                mLastFillCoordinate += (getItemHeight(child) / 2 + offset)
+                mFillAnchor += (getItemHeight(child) / 2 + offset)
             }
         }
 
+    }
+
+    private fun fillLayout(
+        recycler: RecyclerView.Recycler,
+        state: RecyclerView.State
+    ) {
+        mFillAnchor = if (orientation == HORIZONTAL) {
+            if (reverseLayout) {
+                width - paddingRight
+            } else {
+                paddingLeft
+            }
+        } else {
+            if (reverseLayout) {
+                height - paddingBottom
+            } else {
+                paddingTop
+            }
+        }
+        fill(getTotalSpace(), recycler, state)
     }
 
     private fun fillScroll(
@@ -234,10 +237,10 @@ class AvatarLayoutManager(
         recycler: RecyclerView.Recycler,
         state: RecyclerView.State
     ): Int {
-        if (delta > 0) {
-            return fillEnd(delta, recycler, state)
+        return if (delta > 0) {
+            fillEnd(delta, recycler, state)
         } else {
-            return fillStart()
+            fillStart(delta, recycler, state)
         }
     }
 
@@ -259,37 +262,75 @@ class AvatarLayoutManager(
         }
 
         mCurrentPosition = lastPosition + 1
-        mLastFillCoordinate = getDecoratedRight(lastView) - getItemWidth(lastView) / 2
-        fill(delta, recycler, state)
-        return delta
+        mFillAnchor = lastRight - getItemWidth(lastView) / 2
+
+        return fill(delta, recycler, state)
     }
 
-    private fun fillStart(): Int {
+    private fun fillStart(
+        delta: Int,
+        recycler: RecyclerView.Recycler,
+        state: RecyclerView.State
+    ): Int {
+        val firstView = getChildAt(0)!!
+        val firstRight = getDecoratedRight(firstView)
+        if (firstRight < getStart()) {
+            return delta
+        }
 
-        return 0
+        val firstLeft = getDecoratedLeft(firstView)
+        val firstPosition = getPosition(firstView)
+        if (firstPosition == 0 && firstLeft >= getStart()) {
+            return firstLeft - getStart()
+        }
+
+        mCurrentPosition = firstPosition - 1
+        mFillAnchor = firstLeft - getItemWidth(firstView) / 2
+
+        return fill(delta, recycler, state)
     }
 
-    private fun recycleChildren(recycler: RecyclerView.Recycler) {
+    private fun recycleChildren(
+        consume: Int,
+        recycler: RecyclerView.Recycler
+    ) {
+        if (childCount == 0) return
+
+        if (consume > 0) {//recycle start
+            recycleStart()
+        } else {//recycle end
+            recycleEnd()
+        }
+
+        recycleOutChildren(recycler)
+    }
+
+    private fun recycleStart() {
         for (i in 0 until childCount) {
             val child = getChildAt(i)!!
+            val right = getDecoratedRight(child)
+            if (right > getStart()) break
 
-            if (orientation == HORIZONTAL) {
-                if (getDecoratedRight(child) < getStart() || getDecoratedLeft(child) > getEnd()) {
-                    mRecycleChildren.add(child)
-                }
-            } else {
-                if (getDecoratedBottom(child) < getStart() || getDecoratedTop(child) > getEnd()) {
-                    mRecycleChildren.add(child)
-                }
-            }
+            mOutChildren.add(child)
         }
+    }
 
-        for (child in mRecycleChildren) {
-            logDebug("recycleChildren -- ${getPosition(child)}")
-            removeAndRecycleView(child, recycler)
+    private fun recycleEnd() {
+        for (i in childCount - 1 downTo 0) {
+            val child = getChildAt(i)!!
+            val left = getDecoratedLeft(child)
+            if (left < getEnd()) break
+
+            mOutChildren.add(child)
         }
+    }
 
-        mRecycleChildren.clear()
+    private fun recycleOutChildren(recycler: RecyclerView.Recycler) {
+        for (view in mOutChildren) {
+            logDebug("recycle -- ${getPosition(view)}")
+            removeAndRecycleView(view, recycler)
+        }
+        mOutChildren.clear()
     }
 
     //模仿创建OrientationHelper帮助类开始
@@ -320,19 +361,11 @@ class AvatarLayoutManager(
         return view
     }
 
-    /**
-     * 获取一个item的所占的空间
-     * HORIZONTAL的时候就是width，VERTICAL时就是高度
-     */
     private fun getItemWidth(child: View): Int {
         val params = child.layoutParams as RecyclerView.LayoutParams
         return getDecoratedMeasuredWidth(child) + params.leftMargin + params.rightMargin
     }
 
-    /**
-     * 获取一个item的宽度或者高度
-     * 和getItemSpace相反
-     */
     private fun getItemHeight(child: View): Int {
         val params = child.layoutParams as RecyclerView.LayoutParams
         return getDecoratedMeasuredHeight(child) + params.topMargin + params.bottomMargin
