@@ -32,16 +32,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun init() {
-//        for (i in 0..2) {
-//            mItems.addAll(mImages)
-//        }
+        for (i in 0..3) {
+            mItems.addAll(mImages)
+        }
 
-        mItems.addAll(mImages)
+//        mItems.addAll(mImages)
 
         rv1.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, true)
         rv1.adapter = AvatarAdapter()
 
-        rv2.layoutManager = AvatarLayoutManager(AvatarLayoutManager.HORIZONTAL, true, 0)
+        rv2.layoutManager = AvatarLayoutManager(AvatarLayoutManager.HORIZONTAL, false, 0, true)
         rv2.adapter = AvatarAdapter()
     }
 
