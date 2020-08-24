@@ -190,7 +190,7 @@ class AvatarLayoutManager @JvmOverloads constructor(
 
         layoutDecoratedWithMargins(child, left, top, right, bottom)
 
-        if (reverseLayout) {
+        if (mItemFillDirection == FILL_START) {
             mFillAnchor -= (getItemSpace(child) / 2 + offset)
         } else {
             mFillAnchor += (getItemSpace(child) / 2 + offset)
