@@ -5,6 +5,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import java.lang.StringBuilder
 import kotlin.math.abs
 
 /**
@@ -27,7 +28,6 @@ class AvatarLayoutManager @JvmOverloads constructor(
 
     private var mPendingPosition: Int = RecyclerView.NO_POSITION
     private var mCurrentPosition: Int = 0
-    private var mAvailable: Int = 0
 
     private var mItemFillDirection: Int = FILL_END
 
@@ -110,9 +110,10 @@ class AvatarLayoutManager @JvmOverloads constructor(
 
         val consume = fillScroll(delta, recycler, state)
         offsetChildren(-consume)
-        recycleChildren(consume, recycler)
+        recycleChildren(delta, recycler)
 
         logChildren(recycler)
+        logChildrenPosition(recycler)
 
         return consume
     }
@@ -137,8 +138,6 @@ class AvatarLayoutManager @JvmOverloads constructor(
         recycler: RecyclerView.Recycler,
         state: RecyclerView.State
     ): Int {
-        mItemFillDirection = if (available > 0) FILL_END else FILL_START
-
         var remainingSpace = abs(available)
 
         while (remainingSpace > 0 && hasMore(state)) {
@@ -191,18 +190,10 @@ class AvatarLayoutManager @JvmOverloads constructor(
 
         layoutDecoratedWithMargins(child, left, top, right, bottom)
 
-        if (orientation == HORIZONTAL) {
-            if (reverseLayout) {
-                mFillAnchor -= (getItemWidth(child) / 2 + offset)
-            } else {
-                mFillAnchor += (getItemWidth(child) / 2 + offset)
-            }
+        if (reverseLayout) {
+            mFillAnchor -= (getItemSpace(child) / 2 + offset)
         } else {
-            if (reverseLayout) {
-                mFillAnchor -= (getItemHeight(child) / 2 + offset)
-            } else {
-                mFillAnchor += (getItemHeight(child) / 2 + offset)
-            }
+            mFillAnchor += (getItemSpace(child) / 2 + offset)
         }
 
     }
@@ -239,6 +230,9 @@ class AvatarLayoutManager @JvmOverloads constructor(
         recycler: RecyclerView.Recycler,
         state: RecyclerView.State
     ): Int {
+
+        mItemFillDirection = if (delta > 0) FILL_END else FILL_START
+
         return if (delta > 0) {
             fillEnd(delta, recycler, state)
         } else {
@@ -269,6 +263,7 @@ class AvatarLayoutManager @JvmOverloads constructor(
         return fill(delta, recycler, state)
     }
 
+    //delta < 0
     private fun fillStart(
         delta: Int,
         recycler: RecyclerView.Recycler,
@@ -276,13 +271,13 @@ class AvatarLayoutManager @JvmOverloads constructor(
     ): Int {
         val firstView = getChildAt(0)!!
         val firstEnd = getDecoratedEnd(firstView)
-        if (firstEnd < getStart()) {
+        if (firstEnd - delta < getStart()) {
             return delta
         }
 
         val firstStart = getDecoratedStart(firstView)
         val firstPosition = getPosition(firstView)
-        if (firstPosition == 0 && firstStart >= getStart()) {
+        if (firstPosition == 0 && firstStart - delta >= getStart()) {
             return firstStart - getStart()
         }
 
@@ -296,7 +291,7 @@ class AvatarLayoutManager @JvmOverloads constructor(
         consume: Int,
         recycler: RecyclerView.Recycler
     ) {
-        if (childCount == 0) return
+        if (childCount == 0 || consume == 0) return
 
         if (consume > 0) {//recycle start
             recycleStart()
@@ -304,6 +299,7 @@ class AvatarLayoutManager @JvmOverloads constructor(
             recycleEnd()
         }
 
+//        logOutChildren()
         recycleOutChildren(recycler)
     }
 
@@ -331,7 +327,7 @@ class AvatarLayoutManager @JvmOverloads constructor(
 
     private fun recycleOutChildren(recycler: RecyclerView.Recycler) {
         for (view in mOutChildren) {
-            logDebug("recycle -- ${getPosition(view)}")
+//            logDebug("recycle -- ${getPosition(view)}")
             removeAndRecycleView(view, recycler)
         }
         mOutChildren.clear()
@@ -438,6 +434,25 @@ class AvatarLayoutManager @JvmOverloads constructor(
 
     private fun logChildren(recycler: RecyclerView.Recycler) {
         logDebug("childCount = $childCount -- scrapSize = ${recycler.scrapList.size}")
+    }
+
+    private fun logChildrenPosition(recycler: RecyclerView.Recycler) {
+        val builder = StringBuilder()
+        for (i in 0 until childCount) {
+            val child = getChildAt(i)!!
+            builder.append(getPosition(child))
+            builder.append(",")
+        }
+        logDebug("child position == $builder")
+    }
+
+    private fun logOutChildren() {
+        val builder = StringBuilder()
+        for (view in mOutChildren) {
+            builder.append(getPosition(view))
+            builder.append(",")
+        }
+        logDebug("out children == ${builder.toString()}")
     }
 
     override fun onAttachedToWindow(view: RecyclerView) {

@@ -44,14 +44,14 @@ class MainActivity : AppCompatActivity() {
         rv2.layoutManager = AvatarLayoutManager(AvatarLayoutManager.HORIZONTAL, false, 0, false)
         rv2.adapter = AvatarAdapter()
 
-        rv3.layoutManager = AvatarLayoutManager(AvatarLayoutManager.HORIZONTAL, true, 10, true)
-        rv3.adapter = AvatarAdapter()
-
-        rv4.layoutManager = AvatarLayoutManager(AvatarLayoutManager.VERTICAL, false, 0, false)
-        rv4.adapter = AvatarAdapter()
-
-        rv5.layoutManager = AvatarLayoutManager(AvatarLayoutManager.VERTICAL, true, 10, true)
-        rv5.adapter = AvatarAdapter()
+//        rv3.layoutManager = AvatarLayoutManager(AvatarLayoutManager.HORIZONTAL, true, 10, true)
+//        rv3.adapter = AvatarAdapter()
+//
+//        rv4.layoutManager = AvatarLayoutManager(AvatarLayoutManager.VERTICAL, false, 0, false)
+//        rv4.adapter = AvatarAdapter()
+//
+//        rv5.layoutManager = AvatarLayoutManager(AvatarLayoutManager.VERTICAL, true, 10, true)
+//        rv5.adapter = AvatarAdapter()
     }
 
     inner class AvatarAdapter : RecyclerView.Adapter<AvatarViewHolder>() {
