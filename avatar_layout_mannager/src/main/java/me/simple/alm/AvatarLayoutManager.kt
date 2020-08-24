@@ -66,7 +66,11 @@ class AvatarLayoutManager(
         }
 
         detachAndScrapAttachedViews(recycler)
-        mLastLayoutCoordinate = 0
+        mLastLayoutCoordinate = if (reverseLayout) {
+            width - paddingRight
+        } else {
+            0
+        }
 
 //        mAvailable = getTotalSpace()
         logDebug("totalSpace == ${getTotalSpace()}")
@@ -159,7 +163,7 @@ class AvatarLayoutManager(
         var bottom = 0
         if (orientation == HORIZONTAL) {
             if (reverseLayout) {
-                right = width - paddingRight
+                right = mLastLayoutCoordinate
                 left = right - getItemWidth(child)
             } else {
                 left = mLastLayoutCoordinate
@@ -177,7 +181,11 @@ class AvatarLayoutManager(
 
         layoutDecoratedWithMargins(child, left, top, right, bottom)
 
-        mLastLayoutCoordinate += (getItemWidth(child) / 2 + offset)
+        if (reverseLayout) {
+            mLastLayoutCoordinate -= (getItemWidth(child) / 2 + offset)
+        } else {
+            mLastLayoutCoordinate += (getItemWidth(child) / 2 + offset)
+        }
     }
 
     private fun fillScrollChildren() {
