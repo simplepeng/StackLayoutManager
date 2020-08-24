@@ -224,6 +224,13 @@ class AvatarLayoutManager @JvmOverloads constructor(
                 paddingTop
             }
         }
+
+        mItemFillDirection = if (reverseLayout) {
+            FILL_START
+        } else {
+            FILL_END
+        }
+
         fill(getTotalSpace(), recycler, state)
     }
 
@@ -303,8 +310,8 @@ class AvatarLayoutManager @JvmOverloads constructor(
     private fun recycleStart() {
         for (i in 0 until childCount) {
             val child = getChildAt(i)!!
-            val right = getDecoratedRight(child)
-            if (right > getStart()) break
+            val end = getDecoratedEnd(child)
+            if (end > getStart()) break
 
             logDebug("recycleStart -- ${getPosition(child)}")
             mOutChildren.add(child)
@@ -314,8 +321,8 @@ class AvatarLayoutManager @JvmOverloads constructor(
     private fun recycleEnd() {
         for (i in childCount - 1 downTo 0) {
             val child = getChildAt(i)!!
-            val left = getDecoratedLeft(child)
-            if (left < getEnd()) break
+            val start = getDecoratedStart(child)
+            if (start < getEnd()) break
 
             logDebug("recycleEnd -- ${getPosition(child)}")
             mOutChildren.add(child)
@@ -403,6 +410,22 @@ class AvatarLayoutManager @JvmOverloads constructor(
             getDecoratedRight(child)
         } else {
             getDecoratedBottom(child)
+        }
+    }
+
+    private fun getLastView(): View {
+        return if (reverseLayout) {
+            getChildAt(0)!!
+        } else {
+            getChildAt(childCount - 1)!!
+        }
+    }
+
+    private fun getFirstView(): View {
+        return if (reverseLayout) {
+            getChildAt(0)!!
+        } else {
+            getChildAt(childCount - 1)!!
         }
     }
 
