@@ -59,11 +59,6 @@ class AvatarLayoutManager @JvmOverloads constructor(
 
         if (state.isPreLayout) return
 
-//        mCurrentPosition = if (mPendingPosition != RecyclerView.NO_POSITION) {
-//            mPendingPosition
-//        } else {
-//            0
-//        }
         mCurrentPosition = 0
 
         detachAndScrapAttachedViews(recycler)
@@ -250,19 +245,19 @@ class AvatarLayoutManager @JvmOverloads constructor(
         state: RecyclerView.State
     ): Int {
         val lastView = getChildAt(childCount - 1)!!
-        val lastLeft = getDecoratedLeft(lastView)
-        if (lastLeft > getEnd()) {
+        val lastStart = getDecoratedStart(lastView)
+        if (lastStart - delta > getEnd()) {
             return delta
         }
 
-        val lastRight = getDecoratedRight(lastView)
+        val lastEnd = getDecoratedEnd(lastView)
         val lastPosition = getPosition(lastView)
-        if (lastPosition == state.itemCount - 1 && lastRight <= getEnd()) {
-            return lastRight - getEnd()
+        if (lastPosition == state.itemCount - 1 && lastEnd - delta <= getEnd()) {
+            return lastEnd - getEnd()
         }
 
         mCurrentPosition = lastPosition + 1
-        mFillAnchor = lastRight - getItemWidth(lastView) / 2
+        mFillAnchor = lastEnd - getItemSpace(lastView) / 2
 
         return fill(delta, recycler, state)
     }
@@ -273,19 +268,19 @@ class AvatarLayoutManager @JvmOverloads constructor(
         state: RecyclerView.State
     ): Int {
         val firstView = getChildAt(0)!!
-        val firstRight = getDecoratedRight(firstView)
-        if (firstRight < getStart()) {
+        val firstEnd = getDecoratedEnd(firstView)
+        if (firstEnd < getStart()) {
             return delta
         }
 
-        val firstLeft = getDecoratedLeft(firstView)
+        val firstStart = getDecoratedStart(firstView)
         val firstPosition = getPosition(firstView)
-        if (firstPosition == 0 && firstLeft >= getStart()) {
-            return firstLeft - getStart()
+        if (firstPosition == 0 && firstStart >= getStart()) {
+            return firstStart - getStart()
         }
 
         mCurrentPosition = firstPosition - 1
-        mFillAnchor = firstLeft - getItemWidth(firstView) / 2
+        mFillAnchor = firstStart - getItemSpace(firstView) / 2
 
         return fill(delta, recycler, state)
     }
@@ -311,6 +306,7 @@ class AvatarLayoutManager @JvmOverloads constructor(
             val right = getDecoratedRight(child)
             if (right > getStart()) break
 
+            logDebug("recycleStart -- ${getPosition(child)}")
             mOutChildren.add(child)
         }
     }
@@ -321,6 +317,7 @@ class AvatarLayoutManager @JvmOverloads constructor(
             val left = getDecoratedLeft(child)
             if (left < getEnd()) break
 
+            logDebug("recycleEnd -- ${getPosition(child)}")
             mOutChildren.add(child)
         }
     }
@@ -390,6 +387,22 @@ class AvatarLayoutManager @JvmOverloads constructor(
             width - paddingRight
         } else {
             height - paddingBottom
+        }
+    }
+
+    private fun getDecoratedStart(child: View): Int {
+        return if (orientation == HORIZONTAL) {
+            getDecoratedLeft(child)
+        } else {
+            getDecoratedTop(child)
+        }
+    }
+
+    private fun getDecoratedEnd(child: View): Int {
+        return if (orientation == HORIZONTAL) {
+            getDecoratedRight(child)
+        } else {
+            getDecoratedBottom(child)
         }
     }
 
