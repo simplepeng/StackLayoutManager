@@ -63,9 +63,14 @@ class AvatarLayoutManager @JvmOverloads constructor(
 
         detachAndScrapAttachedViews(recycler)
 
+        logDebug("total space == ${getTotalSpace()}")
+
         fillLayout(recycler, state)
 
         logChildren(recycler)
+        logChildrenPosition(recycler)
+
+
     }
 
     override fun onLayoutCompleted(state: RecyclerView.State) {
@@ -142,10 +147,10 @@ class AvatarLayoutManager @JvmOverloads constructor(
 
         while (remainingSpace > 0 && hasMore(state)) {
             val child = nextView(recycler)
-            if (mItemFillDirection == FILL_END) {
-                addView(child)
-            } else {
+            if (reverseLayout == (mItemFillDirection == FILL_START)) {
                 addView(child, 0)
+            } else {
+                addView(child)
             }
             measureChildWithMargins(child, 0, 0)
             layoutChunk(child)
@@ -153,7 +158,7 @@ class AvatarLayoutManager @JvmOverloads constructor(
             logDebug("fill -- ${getPosition(child)}")
 
             remainingSpace -= getItemSpace(child) / 2
-//            logDebug("remainingSpace == $remainingSpace")
+            logDebug("remainingSpace == $remainingSpace")
         }
 
         return available
@@ -332,6 +337,8 @@ class AvatarLayoutManager @JvmOverloads constructor(
         }
         mOutChildren.clear()
     }
+
+    //自定义方法结束
 
     //模仿创建OrientationHelper帮助类开始
 

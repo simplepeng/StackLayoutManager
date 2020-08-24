@@ -41,8 +41,8 @@ class MainActivity : AppCompatActivity() {
 //        rv1.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, true)
 //        rv1.adapter = AvatarAdapter()
 
-        rv2.layoutManager = AvatarLayoutManager(AvatarLayoutManager.HORIZONTAL, false, 0, false)
-        rv2.adapter = AvatarAdapter()
+//        rv2.layoutManager = AvatarLayoutManager(AvatarLayoutManager.HORIZONTAL, false, 0, false)
+//        rv2.adapter = AvatarAdapter()
 
         rv3.layoutManager = AvatarLayoutManager(AvatarLayoutManager.HORIZONTAL, true, 10, true)
         rv3.adapter = AvatarAdapter()
