@@ -31,6 +31,7 @@ class AvatarLayoutManager @JvmOverloads constructor(
 
     private var mItemFillDirection: Int = FILL_END
 
+    //填充view的锚点
     private var mFillAnchor: Int = 0
 
     private val mOutChildren = hashSetOf<View>()
@@ -57,20 +58,14 @@ class AvatarLayoutManager @JvmOverloads constructor(
 
 //        logDebug("state - $state")
 
+        //不支持预测动画，可以直接return
         if (state.isPreLayout) return
 
         mCurrentPosition = 0
 
         detachAndScrapAttachedViews(recycler)
 
-        logDebug("total space == ${getTotalSpace()}")
-
         fillLayout(recycler, state)
-
-        logChildren(recycler)
-        logChildrenPosition(recycler)
-
-
     }
 
     override fun onLayoutCompleted(state: RecyclerView.State) {
@@ -146,19 +141,20 @@ class AvatarLayoutManager @JvmOverloads constructor(
         var remainingSpace = abs(available)
 
         while (remainingSpace > 0 && hasMore(state)) {
+
             val child = nextView(recycler)
-            if (reverseLayout == (mItemFillDirection == FILL_START)) {
+
+            if (mItemFillDirection == FILL_START) {
                 addView(child, 0)
             } else {
                 addView(child)
             }
+
             measureChildWithMargins(child, 0, 0)
+
             layoutChunk(child)
 
-            logDebug("fill -- ${getPosition(child)}")
-
             remainingSpace -= getItemSpace(child) / 2
-            logDebug("remainingSpace == $remainingSpace")
         }
 
         return available
@@ -207,6 +203,7 @@ class AvatarLayoutManager @JvmOverloads constructor(
         recycler: RecyclerView.Recycler,
         state: RecyclerView.State
     ) {
+        //计算填充view的初始锚点
         mFillAnchor = if (orientation == HORIZONTAL) {
             if (reverseLayout) {
                 width - paddingRight
@@ -221,11 +218,7 @@ class AvatarLayoutManager @JvmOverloads constructor(
             }
         }
 
-        mItemFillDirection = if (reverseLayout) {
-            FILL_START
-        } else {
-            FILL_END
-        }
+        mItemFillDirection = if (reverseLayout) FILL_START else FILL_END
 
         fill(getTotalSpace(), recycler, state)
     }
@@ -245,52 +238,94 @@ class AvatarLayoutManager @JvmOverloads constructor(
         }
     }
 
-    private fun fillEnd(
-        delta: Int,
-        recycler: RecyclerView.Recycler,
-        state: RecyclerView.State
-    ): Int {
-        val lastView = getChildAt(childCount - 1)!!
-        val lastStart = getDecoratedStart(lastView)
-        if (lastStart - delta > getEnd()) {
-            return delta
-        }
-
-        val lastEnd = getDecoratedEnd(lastView)
-        val lastPosition = getPosition(lastView)
-        if (lastPosition == state.itemCount - 1 && lastEnd - delta <= getEnd()) {
-            return lastEnd - getEnd()
-        }
-
-        mCurrentPosition = lastPosition + 1
-        mFillAnchor = lastEnd - getItemSpace(lastView) / 2
-
-        return fill(delta, recycler, state)
-    }
-
     //delta < 0
     private fun fillStart(
         delta: Int,
         recycler: RecyclerView.Recycler,
         state: RecyclerView.State
     ): Int {
-        val firstView = getChildAt(0)!!
-        val firstEnd = getDecoratedEnd(firstView)
-        if (firstEnd - delta < getStart()) {
+        //如果startView结束的边减去`加上`移动的距离还是没出现在屏幕内
+        //那么就可以继续滚动，不填充view
+        val startView = getStartView()
+        val startViewDecoratedEnd = getDecoratedEnd(startView)
+        if (startViewDecoratedEnd - delta < getStart()) {
             return delta
         }
 
-        val firstStart = getDecoratedStart(firstView)
-        val firstPosition = getPosition(firstView)
-        if (firstPosition == 0 && firstStart - delta >= getStart()) {
-            return firstStart - getStart()
+        //如果 startPosition == 0 且startPosition的开始的边加上移动的距离
+        //大于等于Recyclerview的最小宽度或高度，就返回修正过后的移动距离
+        val startViewDecoratedStart = getDecoratedStart(startView)
+        val startPosition = getPosition(startView)
+        //已经拖动到了最左边或者顶部
+        if (startPosition == getStartPosition(state) && startViewDecoratedStart - delta >= getStart()) {
+            return startViewDecoratedStart - getStart()
         }
 
-        mCurrentPosition = firstPosition - 1
-        mFillAnchor = firstStart - getItemSpace(firstView) / 2
+        resetCurrentPosition(startPosition)
+
+        mFillAnchor = if (reverseLayout) {
+            startViewDecoratedStart + getItemSpace(startView) / 2
+        } else {
+            startViewDecoratedStart - getItemSpace(startView) / 2
+        }
 
         return fill(delta, recycler, state)
     }
+
+    //delta > 0
+    private fun fillEnd(
+        delta: Int,
+        recycler: RecyclerView.Recycler,
+        state: RecyclerView.State
+    ): Int {
+        //如果endView的开始的边`减去`移动的距离还是没出现在屏幕内
+        //那么就可以继续滚动，不填充view
+        val endView = getEndView()
+        val endViewDecoratedStart = getDecoratedStart(endView)
+        if (endViewDecoratedStart - delta > getEnd()) {
+            return delta
+        }
+
+        //如果 endPosition == itemCount - 1 且endView的结束的边减去移动的距离
+        //小于等于Recyclerview的最大宽度或高度，就返回修正过后的移动距离
+        val endViewDecoratedEnd = getDecoratedEnd(endView)
+        val endPosition = getPosition(endView)
+        if (endPosition == getEndPosition(state) && endViewDecoratedEnd - delta <= getEnd()) {
+            return endViewDecoratedEnd - getEnd()
+        }
+
+        resetCurrentPosition(endPosition)
+
+        //如果是逆序布局，填充锚点为
+        //如果是正序布局，填充锚点为endViewDecoratedEnd减去endView宽度或者高度的一半
+        mFillAnchor = if (reverseLayout) {
+            endViewDecoratedEnd + getItemSpace(endView) / 2
+        } else {
+            endViewDecoratedEnd - getItemSpace(endView) / 2
+        }
+
+        return fill(delta, recycler, state)
+    }
+
+
+    /**
+     * fillStart == -1
+     * fillEnd == 1
+     * 重新计算当前要填充view的position
+     */
+    private fun resetCurrentPosition(position: Int) {
+        mCurrentPosition = if (reverseLayout) {
+            position - mItemFillDirection
+        } else {
+            position + mItemFillDirection
+        }
+    }
+
+    private fun getStartPosition(state: RecyclerView.State) =
+        if (reverseLayout) state.itemCount - 1 else 0
+
+    private fun getEndPosition(state: RecyclerView.State) =
+        if (reverseLayout) 0 else state.itemCount - 1
 
     private fun recycleChildren(
         consume: Int,
@@ -311,7 +346,7 @@ class AvatarLayoutManager @JvmOverloads constructor(
     private fun recycleStart() {
         for (i in 0 until childCount) {
             val child = getChildAt(i)!!
-            val end = getDecoratedEnd(child)
+            val end = getRecycleStartEdge(child)
             if (end > getStart()) break
 
             logDebug("recycleStart -- ${getPosition(child)}")
@@ -319,15 +354,27 @@ class AvatarLayoutManager @JvmOverloads constructor(
         }
     }
 
+    private fun getRecycleStartEdge(child: View) = if (orientation == HORIZONTAL) {
+        getDecoratedRight(child)
+    } else {
+        getDecoratedBottom(child)
+    }
+
     private fun recycleEnd() {
         for (i in childCount - 1 downTo 0) {
             val child = getChildAt(i)!!
-            val start = getDecoratedStart(child)
+            val start = getRecycleEndEdge(child)
             if (start < getEnd()) break
 
             logDebug("recycleEnd -- ${getPosition(child)}")
             mOutChildren.add(child)
         }
+    }
+
+    private fun getRecycleEndEdge(child: View) = if (orientation == HORIZONTAL) {
+        getDecoratedLeft(child)
+    } else {
+        getDecoratedTop(child)
     }
 
     private fun recycleOutChildren(recycler: RecyclerView.Recycler) {
@@ -340,7 +387,7 @@ class AvatarLayoutManager @JvmOverloads constructor(
 
     //自定义方法结束
 
-    //模仿创建OrientationHelper帮助类开始
+//---- 模仿创建OrientationHelper帮助类开始
 
     private fun hasMore(state: RecyclerView.State): Boolean {
         return mCurrentPosition >= 0 && mCurrentPosition < state.itemCount
@@ -354,6 +401,9 @@ class AvatarLayoutManager @JvmOverloads constructor(
         }
     }
 
+    /**
+     * 移动所有子view
+     */
     private fun offsetChildren(amount: Int) {
         if (orientation == HORIZONTAL) {
             offsetChildrenHorizontal(amount)
@@ -364,7 +414,12 @@ class AvatarLayoutManager @JvmOverloads constructor(
 
     private fun nextView(recycler: RecyclerView.Recycler): View {
         val view = recycler.getViewForPosition(mCurrentPosition)
-        mCurrentPosition += mItemFillDirection
+
+        if (reverseLayout) {
+            mCurrentPosition -= mItemFillDirection
+        } else {
+            mCurrentPosition += mItemFillDirection
+        }
         return view
     }
 
@@ -416,24 +471,10 @@ class AvatarLayoutManager @JvmOverloads constructor(
         }
     }
 
-    private fun getLastView(): View {
-        return if (reverseLayout) {
-            getChildAt(0)!!
-        } else {
-            getChildAt(childCount - 1)!!
-        }
-    }
+    private fun getStartView() = getChildAt(0)!!
 
-    private fun getFirstView(): View {
-        return if (reverseLayout) {
-            getChildAt(0)!!
-        } else {
-            getChildAt(childCount - 1)!!
-        }
-    }
-
-    //模仿创建OrientationHelper帮助类结束
-
+    private fun getEndView() = getChildAt(childCount - 1)!!
+//---- 模仿创建OrientationHelper帮助类结束
 
     private fun logDebug(msg: String) {
         Log.d("AvatarLayoutManager", msg)
