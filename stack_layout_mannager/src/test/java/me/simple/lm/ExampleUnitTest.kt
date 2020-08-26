@@ -1,4 +1,4 @@
-package me.simple.alm
+package me.simple.lm
 
 import org.junit.Test
 

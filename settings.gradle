@@ -1,3 +1,3 @@
-include ':avatar_layout_mannager'
+include ':stack_layout_mannager'
 include ':app'
-rootProject.name = "AvatarLayoutManager"
+rootProject.name = "StackLayoutManager"

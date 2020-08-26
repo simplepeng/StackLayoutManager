@@ -1,4 +1,4 @@
-package demo.simple.avatarlayoutmanager
+package demo.simple.stacklayoutmanager
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4

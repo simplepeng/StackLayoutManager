@@ -1,4 +1,4 @@
-package me.simple.alm
+package me.simple.lm
 
 import android.util.Log
 import android.view.View
@@ -11,10 +11,10 @@ import kotlin.math.abs
 /**
  * @param orientation 支持的方向
  */
-class AvatarLayoutManager @JvmOverloads constructor(
+class StackLayoutManager @JvmOverloads constructor(
     private val orientation: Int = HORIZONTAL,
     private val reverseLayout: Boolean = false,
-    private val offset: Int = 1,
+    private val offset: Int = 0,
     private val changeDrawingOrder: Boolean = false
 ) : RecyclerView.LayoutManager() {
 

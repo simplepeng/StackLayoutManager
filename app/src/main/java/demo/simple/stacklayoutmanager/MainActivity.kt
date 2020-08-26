@@ -1,4 +1,4 @@
-package demo.simple.avatarlayoutmanager
+package demo.simple.stacklayoutmanager
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -11,8 +11,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.activity_main.*
-import me.simple.alm.AvatarLayoutManager
-import kotlin.random.Random
+import me.simple.lm.StackLayoutManager
 
 class MainActivity : AppCompatActivity() {
 
@@ -44,16 +43,16 @@ class MainActivity : AppCompatActivity() {
         rv1.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
         rv1.adapter = AvatarAdapter()
 
-        rv2.layoutManager = AvatarLayoutManager(AvatarLayoutManager.HORIZONTAL, false, 0, false)
+        rv2.layoutManager = StackLayoutManager(StackLayoutManager.HORIZONTAL, false, 0, false)
         rv2.adapter = AvatarAdapter()
 
-        rv3.layoutManager = AvatarLayoutManager(AvatarLayoutManager.HORIZONTAL, true, 20, false)
+        rv3.layoutManager = StackLayoutManager(StackLayoutManager.HORIZONTAL, true, 20, false)
         rv3.adapter = AvatarAdapter()
 //
-        rv4.layoutManager = AvatarLayoutManager(AvatarLayoutManager.VERTICAL, false, 0, false)
+        rv4.layoutManager = StackLayoutManager(StackLayoutManager.VERTICAL, false, 0, false)
         rv4.adapter = AvatarAdapter()
 //
-        rv5.layoutManager = AvatarLayoutManager(AvatarLayoutManager.VERTICAL, true, 20, true)
+        rv5.layoutManager = StackLayoutManager(StackLayoutManager.VERTICAL, true, 20, true)
         rv5.adapter = AvatarAdapter()
     }
 
@@ -87,7 +86,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showSettingDialog() {
-
+        val dialog = AlertDialog.Builder(this)
+            .setView(R.layout.dialog_setting)
+            .show()
     }
 
     private fun showToPositionDialog() {

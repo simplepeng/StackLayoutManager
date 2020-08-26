@@ -1,4 +1,4 @@
-package demo.simple.avatarlayoutmanager
+package demo.simple.stacklayoutmanager
 
 import org.junit.Test
 
