@@ -8,12 +8,19 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.widget.SwitchCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.activity_main.*
 import me.simple.lm.StackLayoutManager
 
 class MainActivity : AppCompatActivity() {
+
+    private var mItemCount = 30
+    private var mReverseLayout = false
+    private var mChangeDrawingOrder = false
+    private var mOffset = 0
+
 
     private val mItems = mutableListOf<Int>()
     private val mImages = mutableListOf<Int>(
@@ -34,9 +41,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun init() {
-        for (i in 0..4) {
-            mItems.addAll(mImages)
-        }
+        initData()
 
 //        mItems.addAll(mImages)
 
@@ -54,6 +59,16 @@ class MainActivity : AppCompatActivity() {
 //
         rv5.layoutManager = StackLayoutManager(StackLayoutManager.VERTICAL, true, 20, true)
         rv5.adapter = AvatarAdapter()
+    }
+
+    private fun initData() {
+        mItems.clear()
+        var index = 0
+        for (i in 0 until mItemCount) {
+            if (index >= 6) index = 0
+            mItems.add(mImages[index])
+            index++
+        }
     }
 
     private fun scrollTo(position: Int) {
@@ -89,6 +104,83 @@ class MainActivity : AppCompatActivity() {
         val dialog = AlertDialog.Builder(this)
             .setView(R.layout.dialog_setting)
             .show()
+
+        val switchReverseLayout = dialog.findViewById<SwitchCompat>(R.id.switchReverseLayout)!!
+        val switchChangeDrawingOrder =
+            dialog.findViewById<SwitchCompat>(R.id.switchChangeDrawingOrder)!!
+        val etItemCount = dialog.findViewById<EditText>(R.id.etItemCount)!!
+        val etOffset = dialog.findViewById<EditText>(R.id.etOffset)!!
+        val btnOK = dialog.findViewById<Button>(R.id.btnOK)!!
+
+        switchReverseLayout.isChecked = mReverseLayout
+        switchChangeDrawingOrder.isChecked = mChangeDrawingOrder
+        etItemCount.setText(mItemCount.toString())
+        etOffset.setText(mOffset.toString())
+
+        btnOK.setOnClickListener {
+            dialog.dismiss()
+
+            mReverseLayout = switchReverseLayout.isChecked
+            mChangeDrawingOrder = switchChangeDrawingOrder.isChecked
+            val itemCount = etItemCount.text.toString().toInt()
+            mOffset = etOffset.text.toString().toInt()
+            if (itemCount != mItemCount) {
+                mItemCount = itemCount
+                initData()
+            }
+
+            resetLayoutManager(mReverseLayout, mOffset, mChangeDrawingOrder)
+        }
+    }
+
+    private fun resetLayoutManager(
+        reverseLayout: Boolean,
+        offset: Int,
+        changeDrawingOrder: Boolean
+    ) {
+        for (view in mViews) {
+            val lm = when (view.id) {
+                R.id.rv1 -> {
+                    LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, reverseLayout)
+                }
+                R.id.rv2 -> {
+                    StackLayoutManager(
+                        StackLayoutManager.HORIZONTAL,
+                        reverseLayout,
+                        offset,
+                        changeDrawingOrder
+                    )
+                }
+                R.id.rv3 -> {
+                    StackLayoutManager(
+                        StackLayoutManager.HORIZONTAL,
+                        reverseLayout,
+                        offset,
+                        changeDrawingOrder
+                    )
+                }
+                R.id.rv4 -> {
+                    StackLayoutManager(
+                        StackLayoutManager.VERTICAL,
+                        reverseLayout,
+                        offset,
+                        changeDrawingOrder
+                    )
+                }
+                R.id.rv5 -> {
+                    StackLayoutManager(
+                        StackLayoutManager.VERTICAL,
+                        reverseLayout,
+                        offset,
+                        changeDrawingOrder
+                    )
+                }
+                else -> {
+                    LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, reverseLayout)
+                }
+            }
+            view.layoutManager = lm
+        }
     }
 
     private fun showToPositionDialog() {

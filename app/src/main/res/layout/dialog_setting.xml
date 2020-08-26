@@ -24,14 +24,36 @@
         app:layout_constraintTop_toBottomOf="@id/switchReverseLayout" />
 
     <TextView
-        android:id="@+id/textView"
+        android:id="@+id/tvItemCount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="30dp"
+        android:text="itemCount:"
+        android:textSize="15dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/switchChangeDrawingOrder" />
+
+    <EditText
+        android:id="@+id/etItemCount"
+        android:layout_width="100dp"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="10dp"
+        android:gravity="center"
+        android:hint="offset"
+        android:text="30"
+        app:layout_constraintBottom_toBottomOf="@+id/tvItemCount"
+        app:layout_constraintStart_toEndOf="@+id/tvItemCount"
+        app:layout_constraintTop_toTopOf="@+id/tvItemCount" />
+
+    <TextView
+        android:id="@+id/tvOffset"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="30dp"
         android:text="offset:"
         android:textSize="15dp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/switchChangeDrawingOrder" />
+        app:layout_constraintTop_toBottomOf="@+id/tvItemCount" />
 
     <EditText
         android:id="@+id/etOffset"
@@ -41,9 +63,9 @@
         android:gravity="center"
         android:hint="offset"
         android:text="0"
-        app:layout_constraintBottom_toBottomOf="@+id/textView"
-        app:layout_constraintStart_toEndOf="@+id/textView"
-        app:layout_constraintTop_toTopOf="@+id/textView" />
+        app:layout_constraintBottom_toBottomOf="@+id/tvOffset"
+        app:layout_constraintStart_toEndOf="@+id/tvOffset"
+        app:layout_constraintTop_toTopOf="@+id/tvOffset" />
 
     <Button
         android:id="@+id/btnOK"
