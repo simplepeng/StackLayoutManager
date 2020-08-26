@@ -2,11 +2,12 @@ package demo.simple.avatarlayoutmanager
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
+import android.widget.Button
+import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.activity_main.*
@@ -25,6 +26,8 @@ class MainActivity : AppCompatActivity() {
         R.drawable.iu_6
     )
 
+    private val mViews by lazy { mutableListOf(rv1, rv2, rv3, rv4, rv5) }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -38,20 +41,77 @@ class MainActivity : AppCompatActivity() {
 
 //        mItems.addAll(mImages)
 
-//        rv1.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, true)
-//        rv1.adapter = AvatarAdapter()
+        rv1.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        rv1.adapter = AvatarAdapter()
 
         rv2.layoutManager = AvatarLayoutManager(AvatarLayoutManager.HORIZONTAL, false, 0, false)
         rv2.adapter = AvatarAdapter()
 
-        rv3.layoutManager = AvatarLayoutManager(AvatarLayoutManager.HORIZONTAL, true, 0, false)
+        rv3.layoutManager = AvatarLayoutManager(AvatarLayoutManager.HORIZONTAL, true, 20, false)
         rv3.adapter = AvatarAdapter()
 //
-//        rv4.layoutManager = AvatarLayoutManager(AvatarLayoutManager.VERTICAL, false, 0, false)
-//        rv4.adapter = AvatarAdapter()
+        rv4.layoutManager = AvatarLayoutManager(AvatarLayoutManager.VERTICAL, false, 0, false)
+        rv4.adapter = AvatarAdapter()
 //
-//        rv5.layoutManager = AvatarLayoutManager(AvatarLayoutManager.VERTICAL, true, 10, true)
-//        rv5.adapter = AvatarAdapter()
+        rv5.layoutManager = AvatarLayoutManager(AvatarLayoutManager.VERTICAL, true, 20, true)
+        rv5.adapter = AvatarAdapter()
+    }
+
+    private fun scrollTo(position: Int) {
+        for (view in mViews) {
+            view.scrollToPosition(position)
+        }
+    }
+
+    private fun smoothScrollTo(position: Int) {
+        for (view in mViews) {
+            view.smoothScrollToPosition(position)
+        }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.menu_main, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.menu_scroll -> {
+                showToPositionDialog()
+            }
+            R.id.menu_setting -> {
+                showSettingDialog()
+            }
+        }
+        return true
+    }
+
+    private fun showSettingDialog() {
+
+    }
+
+    private fun showToPositionDialog() {
+        val dialog = AlertDialog.Builder(this)
+            .setView(R.layout.dialog_to_position)
+            .show()
+        val etToPosition = dialog.findViewById<EditText>(R.id.etToPosition)!!
+        val btnToPosition = dialog.findViewById<Button>(R.id.btnToPosition)!!
+        val btnSmoothToPosition = dialog.findViewById<Button>(R.id.btnSmoothToPosition)!!
+
+        btnToPosition.setOnClickListener {
+            dialog.dismiss()
+            kotlin.runCatching {
+                val position = etToPosition.text.toString().toInt()
+                scrollTo(position)
+            }
+        }
+        btnSmoothToPosition.setOnClickListener {
+            dialog.dismiss()
+            kotlin.runCatching {
+                val position = etToPosition.text.toString().toInt()
+                smoothScrollTo(position)
+            }
+        }
     }
 
     inner class AvatarAdapter : RecyclerView.Adapter<AvatarViewHolder>() {

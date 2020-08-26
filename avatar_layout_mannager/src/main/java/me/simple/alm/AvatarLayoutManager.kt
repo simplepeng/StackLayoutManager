@@ -26,14 +26,15 @@ class AvatarLayoutManager @JvmOverloads constructor(
         const val FILL_END = 1
     }
 
+    //
     private var mPendingPosition: Int = RecyclerView.NO_POSITION
+    //当前要填充view的索引
     private var mCurrentPosition: Int = 0
-
+    //填充view的方向
     private var mItemFillDirection: Int = FILL_END
-
     //填充view的锚点
     private var mFillAnchor: Int = 0
-
+    //要回收的view集合
     private val mOutChildren = hashSetOf<View>()
 
     override fun generateDefaultLayoutParams(): RecyclerView.LayoutParams {
@@ -56,15 +57,14 @@ class AvatarLayoutManager @JvmOverloads constructor(
             return
         }
 
-//        logDebug("state - $state")
-
         //不支持预测动画，可以直接return
         if (state.isPreLayout) return
 
         mCurrentPosition = 0
 
+        //轻量级的将view移除屏幕，还是会存在于缓存中
         detachAndScrapAttachedViews(recycler)
-
+        //开始填充view
         fillLayout(recycler, state)
     }
 
