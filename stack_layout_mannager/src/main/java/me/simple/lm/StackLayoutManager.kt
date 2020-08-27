@@ -1,11 +1,13 @@
 package me.simple.lm
 
+import android.graphics.PointF
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.LinearSmoothScroller
 import androidx.recyclerview.widget.RecyclerView
-import java.lang.StringBuilder
+import androidx.recyclerview.widget.RecyclerView.SmoothScroller.ScrollVectorProvider
 import kotlin.math.abs
 
 /**
@@ -16,7 +18,7 @@ class StackLayoutManager @JvmOverloads constructor(
     private val reverseLayout: Boolean = false,
     private val offset: Int = 0,
     private val changeDrawingOrder: Boolean = false
-) : RecyclerView.LayoutManager() {
+) : RecyclerView.LayoutManager(), ScrollVectorProvider {
 
     companion object {
         const val HORIZONTAL = LinearLayoutManager.HORIZONTAL
@@ -28,12 +30,16 @@ class StackLayoutManager @JvmOverloads constructor(
 
     //
     private var mPendingPosition: Int = RecyclerView.NO_POSITION
+
     //当前要填充view的索引
     private var mCurrentPosition: Int = 0
+
     //填充view的方向
     private var mItemFillDirection: Int = FILL_END
+
     //填充view的锚点
     private var mFillAnchor: Int = 0
+
     //要回收的view集合
     private val mOutChildren = hashSetOf<View>()
 
@@ -60,7 +66,11 @@ class StackLayoutManager @JvmOverloads constructor(
         //不支持预测动画，可以直接return
         if (state.isPreLayout) return
 
-        mCurrentPosition = 0
+        if (mPendingPosition != RecyclerView.NO_POSITION) {
+
+        } else {
+            mCurrentPosition = 0
+        }
 
         //轻量级的将view移除屏幕，还是会存在于缓存中
         detachAndScrapAttachedViews(recycler)
@@ -106,14 +116,9 @@ class StackLayoutManager @JvmOverloads constructor(
             return 0
         }
 
-//        logDebug("delta == $delta")
-
         val consume = fillScroll(delta, recycler, state)
         offsetChildren(-consume)
         recycleChildren(delta, recycler)
-
-        logChildren(recycler)
-        logChildrenPosition(recycler)
 
         return consume
     }
@@ -128,11 +133,25 @@ class StackLayoutManager @JvmOverloads constructor(
         state: RecyclerView.State,
         position: Int
     ) {
-
+        val linearSmoothScroller = LinearSmoothScroller(recyclerView.context)
+        linearSmoothScroller.targetPosition = position
+        startSmoothScroll(linearSmoothScroller)
     }
 
-    //自定义方法
+    override fun computeScrollVectorForPosition(targetPosition: Int): PointF? {
+        if (childCount == 0) {
+            return null
+        }
+        val firstChildPos = getPosition(getChildAt(0)!!)
+        val direction = if (targetPosition < firstChildPos != reverseLayout) -1 else 1
+        return if (orientation == HORIZONTAL) {
+            PointF(direction.toFloat(), 0f)
+        } else {
+            PointF(0f, direction.toFloat())
+        }
+    }
 
+    //---- 自定义方法开始
     private fun fill(
         available: Int,
         recycler: RecyclerView.Recycler,
@@ -157,9 +176,15 @@ class StackLayoutManager @JvmOverloads constructor(
             remainingSpace -= getItemSpace(child) / 2
         }
 
+        logChildren(recycler)
+        logChildrenPosition(recycler)
+
         return available
     }
 
+    /**
+     * 摆放子view
+     */
     private fun layoutChunk(
         child: View
     ) {
@@ -257,7 +282,7 @@ class StackLayoutManager @JvmOverloads constructor(
         val startViewDecoratedStart = getDecoratedStart(startView)
         val startPosition = getPosition(startView)
         //已经拖动到了最左边或者顶部
-        if (startPosition == getStartPosition(state) && startViewDecoratedStart - delta >= getStart()) {
+        if (startPosition == getFirstPosition(state) && startViewDecoratedStart - delta >= getStart()) {
             return startViewDecoratedStart - getStart()
         }
 
@@ -290,7 +315,7 @@ class StackLayoutManager @JvmOverloads constructor(
         //小于等于Recyclerview的最大宽度或高度，就返回修正过后的移动距离
         val endViewDecoratedEnd = getDecoratedEnd(endView)
         val endPosition = getPosition(endView)
-        if (endPosition == getEndPosition(state) && endViewDecoratedEnd - delta <= getEnd()) {
+        if (endPosition == getLastPosition(state) && endViewDecoratedEnd - delta <= getEnd()) {
             return endViewDecoratedEnd - getEnd()
         }
 
@@ -321,25 +346,33 @@ class StackLayoutManager @JvmOverloads constructor(
         }
     }
 
-    private fun getStartPosition(state: RecyclerView.State) =
+    /**
+     * 获取itemCount第一个view的position
+     */
+    private fun getFirstPosition(state: RecyclerView.State) =
         if (reverseLayout) state.itemCount - 1 else 0
 
-    private fun getEndPosition(state: RecyclerView.State) =
+    /**
+     * 获取itemCount最后一个view的position
+     */
+    private fun getLastPosition(state: RecyclerView.State) =
         if (reverseLayout) 0 else state.itemCount - 1
 
+    /**
+     * 回收超出屏幕的view
+     */
     private fun recycleChildren(
         consume: Int,
         recycler: RecyclerView.Recycler
     ) {
         if (childCount == 0 || consume == 0) return
 
-        if (consume > 0) {//recycle start
+        if (consume > 0) {
             recycleStart()
-        } else {//recycle end
+        } else {
             recycleEnd()
         }
 
-//        logOutChildren()
         recycleOutChildren(recycler)
     }
 
@@ -354,12 +387,6 @@ class StackLayoutManager @JvmOverloads constructor(
         }
     }
 
-    private fun getRecycleStartEdge(child: View) = if (orientation == HORIZONTAL) {
-        getDecoratedRight(child)
-    } else {
-        getDecoratedBottom(child)
-    }
-
     private fun recycleEnd() {
         for (i in childCount - 1 downTo 0) {
             val child = getChildAt(i)!!
@@ -371,6 +398,12 @@ class StackLayoutManager @JvmOverloads constructor(
         }
     }
 
+    private fun getRecycleStartEdge(child: View) = if (orientation == HORIZONTAL) {
+        getDecoratedRight(child)
+    } else {
+        getDecoratedBottom(child)
+    }
+
     private fun getRecycleEndEdge(child: View) = if (orientation == HORIZONTAL) {
         getDecoratedLeft(child)
     } else {
@@ -379,13 +412,11 @@ class StackLayoutManager @JvmOverloads constructor(
 
     private fun recycleOutChildren(recycler: RecyclerView.Recycler) {
         for (view in mOutChildren) {
-//            logDebug("recycle -- ${getPosition(view)}")
             removeAndRecycleView(view, recycler)
         }
         mOutChildren.clear()
     }
-
-    //自定义方法结束
+//---- 自定义方法结束
 
 //---- 模仿创建OrientationHelper帮助类开始
 

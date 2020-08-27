@@ -139,7 +139,7 @@ class MainActivity : AppCompatActivity() {
         changeDrawingOrder: Boolean
     ) {
         for (view in mViews) {
-            val lm = when (view.id) {
+            val lm:RecyclerView.LayoutManager = when (view.id) {
                 R.id.rv1 -> {
                     LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, reverseLayout)
                 }
