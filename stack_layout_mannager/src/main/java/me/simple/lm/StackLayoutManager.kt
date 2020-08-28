@@ -311,7 +311,14 @@ class StackLayoutManager @JvmOverloads constructor(
 
         fill(getTotalSpace(), recycler, state)
 
-        //fix软键盘弹出和scrollToPosition的偏移量
+        //fix软键盘弹出时rv已经滚动了的偏移量
+        fixScrollOffset(recycler, state)
+    }
+
+    private fun fixScrollOffset(
+        recycler: RecyclerView.Recycler,
+        state: RecyclerView.State
+    ) {
         if (mFixOffset != 0) {
             scrollBy(-mFixOffset, recycler, state)
             mFixOffset = 0
@@ -322,13 +329,13 @@ class StackLayoutManager @JvmOverloads constructor(
      * 计算开始填充view的锚点
      */
     private fun calcAnchorCoordinate() = if (orientation == HORIZONTAL) {
-        if (isLayoutFromEnd()) {
+        if (mLayoutDirection == LAYOUT_END_TO_START) {
             width - paddingRight
         } else {
             paddingLeft
         }
     } else {
-        if (isLayoutFromEnd()) {
+        if (mLayoutDirection == LAYOUT_END_TO_START) {
             height - paddingBottom
         } else {
             paddingTop
