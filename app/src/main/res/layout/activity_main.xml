@@ -71,9 +71,10 @@
         tools:orientation="vertical" />
 
     <EditText
-        android:layout_width="200dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="test"
+        android:textSize="12dp"
+        android:text="测试软键盘弹出重新onLayoutChildren"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
