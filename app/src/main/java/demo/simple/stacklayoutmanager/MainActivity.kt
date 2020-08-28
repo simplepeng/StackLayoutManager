@@ -16,7 +16,7 @@ import me.simple.lm.StackLayoutManager
 
 class MainActivity : AppCompatActivity() {
 
-    private var mItemCount = 30
+    private var mItemCount = 60
     private var mReverseLayout = false
     private var mChangeDrawingOrder = false
     private var mOffset = 0
@@ -51,14 +51,14 @@ class MainActivity : AppCompatActivity() {
         rv2.layoutManager = StackLayoutManager(StackLayoutManager.HORIZONTAL, false, 0, false)
         rv2.adapter = AvatarAdapter()
 
-//        rv3.layoutManager = StackLayoutManager(StackLayoutManager.HORIZONTAL, true, 0, false)
-//        rv3.adapter = AvatarAdapter()
-//
-//        rv4.layoutManager = StackLayoutManager(StackLayoutManager.VERTICAL, false, 0, false)
-//        rv4.adapter = AvatarAdapter()
-//
-//        rv5.layoutManager = StackLayoutManager(StackLayoutManager.VERTICAL, true, 0, true)
-//        rv5.adapter = AvatarAdapter()
+        rv3.layoutManager = StackLayoutManager(StackLayoutManager.HORIZONTAL, true, 0, false)
+        rv3.adapter = AvatarAdapter()
+
+        rv4.layoutManager = StackLayoutManager(StackLayoutManager.VERTICAL, false, 0, false)
+        rv4.adapter = AvatarAdapter()
+
+        rv5.layoutManager = StackLayoutManager(StackLayoutManager.VERTICAL, true, 0, true)
+        rv5.adapter = AvatarAdapter()
     }
 
     private fun initData() {

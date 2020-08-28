@@ -12,6 +12,9 @@ import kotlin.math.abs
 
 /**
  * @param orientation 支持的方向
+ * @param reverseLayout 是否是逆序摆放
+ * @param offset item‘间偏移量
+ * @param changeDrawingOrder 改变默认绘制顺序
  */
 class StackLayoutManager @JvmOverloads constructor(
     private val orientation: Int = HORIZONTAL,
@@ -24,8 +27,8 @@ class StackLayoutManager @JvmOverloads constructor(
         const val HORIZONTAL = LinearLayoutManager.HORIZONTAL
         const val VERTICAL = LinearLayoutManager.VERTICAL
 
-        const val LAYOUT_START_TO_END = 1
-        const val LAYOUT_END_TO_START = -1
+        const val FILL_START_TO_END = 1
+        const val FILL_END_TO_START = -1
     }
 
     //将要scrollTo的Position
@@ -35,7 +38,7 @@ class StackLayoutManager @JvmOverloads constructor(
     private var mCurrentPosition: Int = 0
 
     //填充view的方向
-    private var mLayoutDirection: Int = LAYOUT_END_TO_START
+    private var mFillDirection: Int = FILL_END_TO_START
 
     //填充view的锚点
     private var mFillAnchor: Int = 0
@@ -46,9 +49,6 @@ class StackLayoutManager @JvmOverloads constructor(
     //每次fill view后就记录下开始child和结束child的position
     private var mStartPosition: Int = RecyclerView.NO_POSITION
     private var mEndPosition: Int = RecyclerView.NO_POSITION
-
-    //填充view的方向，从前到后或从后到前
-//    private var mLayoutFromEnd: Boolean = false
 
     //记录当次滚动的距离
     private var mLastScrollDelta: Int = 0
@@ -85,46 +85,23 @@ class StackLayoutManager @JvmOverloads constructor(
         //不支持预测动画，可以直接return
         if (state.isPreLayout) return
 
-//        mLayoutFromEnd = false
+        //计算填充view的方向
+        //正序就是start->end，reverseLayout就是end->start
+        mFillDirection = if (reverseLayout) FILL_END_TO_START else FILL_START_TO_END
 
         when {
             isScrollToCase() -> {//scrollToPosition的layoutChildren
-//                mLayoutFromEnd = !reverseLayout && mPendingScrollPosition > mEndPosition
                 mCurrentPosition = mPendingScrollPosition
-                if (reverseLayout) {
-                    if (mPendingScrollPosition >= mStartPosition) {
-                        mLayoutDirection = LAYOUT_START_TO_END
-                    }
-                    if (mPendingScrollPosition <= mEndPosition) {
-                        mLayoutDirection = LAYOUT_END_TO_START
-                    }
-                } else {
-                    if (mPendingScrollPosition >= mEndPosition) {
-                        mLayoutDirection = LAYOUT_END_TO_START
-                    }
-                    if (mPendingScrollPosition <= mStartPosition) {
-                        mLayoutDirection = LAYOUT_START_TO_END
-                    }
-                }
+                calcLayoutDirectionByScrollToPosition()
             }
             isKeyBoardCase() -> {//软键盘弹出收起的layoutChildren
-                mCurrentPosition =
-                    if (reverseLayout) getChildEndPosition() else getChildStartPosition()
+                mCurrentPosition = getBeginFillPosition()
                 mFixOffset = getFixOffset()
-                mLayoutDirection = if (reverseLayout) LAYOUT_END_TO_START else LAYOUT_START_TO_END
             }
             else -> {//正常的layoutChildren
                 mCurrentPosition = 0
-                mLayoutDirection = if (reverseLayout) LAYOUT_END_TO_START else LAYOUT_START_TO_END
             }
         }
-
-        //计算填充view的方向，LAYOUT_START(start->end)还是(LAYOUT_END)end->start
-        //正序就是start->end，reverseLayout就是end->start
-        //scrollToPosition->
-        // 正序mPendingScrollPosition>mEndPosition就是LAYOUT_END，正序mPendingScrollPosition<mStartPosition就是LAYOUT_START
-        //逆序mPendingScrollPosition>mStartPosition就是LAYOUT_START，正序mPendingScrollPosition<mEndPosition就是LAYOUT_END
-//        mLayoutDirection = if (isLayoutFromEnd()) LAYOUT_START else LAYOUT_END
 
         //轻量级的将view移除屏幕，还是会存在于缓存中
         detachAndScrapAttachedViews(recycler)
@@ -132,12 +109,35 @@ class StackLayoutManager @JvmOverloads constructor(
         fillLayout(recycler, state)
     }
 
+    //scrollToPosition->item填充的方向
+    // 正序mPendingScrollPosition>mEndPosition就是FILL_START_TO_END，正序mPendingScrollPosition<mStartPosition就是FILL_START_TO_END
+    //逆序mPendingScrollPosition>mStartPosition就是FILL_START_TO_END，正序mPendingScrollPosition<mEndPosition就是FILL_END_TO_START
+    private fun calcLayoutDirectionByScrollToPosition() {
+        if (reverseLayout) {
+            if (mPendingScrollPosition >= mStartPosition) {
+                mFillDirection = FILL_START_TO_END
+            }
+            if (mPendingScrollPosition <= mEndPosition) {
+                mFillDirection = FILL_END_TO_START
+            }
+        } else {
+            if (mPendingScrollPosition >= mEndPosition) {
+                mFillDirection = FILL_END_TO_START
+            }
+            if (mPendingScrollPosition <= mStartPosition) {
+                mFillDirection = FILL_START_TO_END
+            }
+        }
+    }
+
     private fun isScrollToCase(): Boolean {
         return mPendingScrollPosition != RecyclerView.NO_POSITION
     }
 
     private fun isKeyBoardCase(): Boolean {
-        return mLastScrollDelta != 0
+        return mLastScrollDelta != 0 ||
+                (mStartPosition != RecyclerView.NO_POSITION
+                        && mEndPosition != RecyclerView.NO_POSITION)
     }
 
     override fun onLayoutCompleted(state: RecyclerView.State) {
@@ -237,7 +237,7 @@ class StackLayoutManager @JvmOverloads constructor(
 
             val child = nextView(recycler)
 
-            if (mLayoutDirection == LAYOUT_START_TO_END) {
+            if (mFillDirection == FILL_START_TO_END) {
                 addView(child)
             } else {
                 addView(child, 0)
@@ -271,7 +271,7 @@ class StackLayoutManager @JvmOverloads constructor(
         var right = 0
         var bottom = 0
         if (orientation == HORIZONTAL) {
-            if (mLayoutDirection == LAYOUT_END_TO_START) {
+            if (mFillDirection == FILL_END_TO_START) {
                 right = mFillAnchor
                 left = right - getItemWidth(child)
             } else {
@@ -281,7 +281,7 @@ class StackLayoutManager @JvmOverloads constructor(
             top = paddingTop
             bottom = top + getItemHeight(child) - paddingBottom
         } else {
-            if (mLayoutDirection == LAYOUT_END_TO_START) {
+            if (mFillDirection == FILL_END_TO_START) {
                 bottom = mFillAnchor
                 top = bottom - getItemHeight(child)
             } else {
@@ -294,7 +294,7 @@ class StackLayoutManager @JvmOverloads constructor(
 
         layoutDecoratedWithMargins(child, left, top, right, bottom)
 
-        if (mLayoutDirection == LAYOUT_END_TO_START) {
+        if (mFillDirection == FILL_END_TO_START) {
             mFillAnchor -= (getItemSpace(child) / 2 + offset)
         } else {
             mFillAnchor += (getItemSpace(child) / 2 + offset)
@@ -329,13 +329,13 @@ class StackLayoutManager @JvmOverloads constructor(
      * 计算开始填充view的锚点
      */
     private fun calcAnchorCoordinate() = if (orientation == HORIZONTAL) {
-        if (mLayoutDirection == LAYOUT_END_TO_START) {
+        if (mFillDirection == FILL_END_TO_START) {
             width - paddingRight
         } else {
             paddingLeft
         }
     } else {
-        if (mLayoutDirection == LAYOUT_END_TO_START) {
+        if (mFillDirection == FILL_END_TO_START) {
             height - paddingBottom
         } else {
             paddingTop
@@ -347,15 +347,11 @@ class StackLayoutManager @JvmOverloads constructor(
         recycler: RecyclerView.Recycler,
         state: RecyclerView.State
     ): Int {
-
-//        mLayoutDirection = if (delta > 0) LAYOUT_START_TO_END else LAYOUT_END_TO_START
-//        mLayoutFromEnd = false
-
         return if (delta > 0) {
-            mLayoutDirection = LAYOUT_START_TO_END
+            mFillDirection = FILL_START_TO_END
             fillEnd(delta, recycler, state)
         } else {
-            mLayoutDirection = LAYOUT_END_TO_START
+            mFillDirection = FILL_END_TO_START
             fillStart(delta, recycler, state)
         }
     }
@@ -385,11 +381,6 @@ class StackLayoutManager @JvmOverloads constructor(
 
         resetCurrentPosition(startPosition)
 
-//        mFillAnchor = if (reverseLayout) {
-//            startViewDecoratedStart - getItemSpace(startView) / 2
-//        } else {
-//            startViewDecoratedStart + getItemSpace(startView) / 2
-//        }
         mFillAnchor = startViewDecoratedStart + getItemSpace(startView) / 2
 
         return fill(delta, recycler, state)
@@ -419,13 +410,6 @@ class StackLayoutManager @JvmOverloads constructor(
 
         resetCurrentPosition(endPosition)
 
-        //如果是逆序布局，填充锚点为
-        //如果是正序布局，填充锚点为endViewDecoratedEnd减去endView宽度或者高度的一半
-//        mFillAnchor = if (reverseLayout) {
-//            endViewDecoratedEnd + getItemSpace(endView) / 2
-//        } else {
-//            endViewDecoratedEnd - getItemSpace(endView) / 2
-//        }
         mFillAnchor = endViewDecoratedEnd - getItemSpace(endView) / 2
 
         return fill(delta, recycler, state)
@@ -439,9 +423,9 @@ class StackLayoutManager @JvmOverloads constructor(
      */
     private fun resetCurrentPosition(position: Int) {
         mCurrentPosition = if (reverseLayout) {
-            position - mLayoutDirection
+            position - mFillDirection
         } else {
-            position + mLayoutDirection
+            position + mFillDirection
         }
     }
 
@@ -537,10 +521,6 @@ class StackLayoutManager @JvmOverloads constructor(
         mEndPosition = getPosition(getEndView())
     }
 
-    private fun calcLayoutCurrentPosition() {
-
-    }
-
     /**
      * 移动所有子view
      */
@@ -559,9 +539,9 @@ class StackLayoutManager @JvmOverloads constructor(
         val view = recycler.getViewForPosition(mCurrentPosition)
 
         if (reverseLayout) {
-            mCurrentPosition -= mLayoutDirection
+            mCurrentPosition -= mFillDirection
         } else {
-            mCurrentPosition += mLayoutDirection
+            mCurrentPosition += mFillDirection
         }
 
         return view
@@ -623,7 +603,11 @@ class StackLayoutManager @JvmOverloads constructor(
 
     private fun getChildEndPosition() = getPosition(getEndView())
 
-    private fun isLayoutFromEnd() = reverseLayout
+    private fun getBeginFillPosition() = if (reverseLayout) {
+        getChildEndPosition()
+    } else {
+        getChildStartPosition()
+    }
 
     private fun getFixOffset(): Int {
         if (childCount == 0) return 0
