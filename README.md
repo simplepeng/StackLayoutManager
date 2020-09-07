@@ -1,5 +1,7 @@
 # StackLayoutManager
 
+[![](https://www.jitpack.io/v/simplepeng/StackLayoutManager.svg)](https://www.jitpack.io/#simplepeng/StackLayoutManager)
+
 一个可以堆叠的LinearLayoutManager
 
 | 动态图                                  | 静态图                                                       |
@@ -11,15 +13,20 @@
 添加`jitpack`仓库
 
 ```groovy
-
+	allprojects {
+		repositories {
+			...
+			maven { url 'https://www.jitpack.io' }
+		}
+	}
 ```
-
-
 
 添加`StackLayoutManager`的依赖
 
 ```groovy
-
+	dependencies {
+	        implementation 'com.github.simplepeng:StackLayoutManager:v1.0.0'
+	}
 ```
 
 
