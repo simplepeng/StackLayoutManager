@@ -1,5 +1,6 @@
 package demo.simple.stacklayoutmanager
 
+import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.*
@@ -37,6 +38,9 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        startActivity(Intent(this, LogActivity::class.java))
+
         init()
     }
 
@@ -139,7 +143,7 @@ class MainActivity : AppCompatActivity() {
         changeDrawingOrder: Boolean
     ) {
         for (view in mViews) {
-            val lm:RecyclerView.LayoutManager = when (view.id) {
+            val lm: RecyclerView.LayoutManager = when (view.id) {
                 R.id.rv1 -> {
                     LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, reverseLayout)
                 }
