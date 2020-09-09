@@ -72,10 +72,10 @@ class BlogLayoutManager : RecyclerView.LayoutManager() {
         //填充View，consumed就是修复后的移动值
         val consumed = fill(dx, recycler)
         Log.d("scrollHorizontallyBy", "consumed == $consumed")
-        //回收View
-        recycle(consumed, recycler)
         //移动View
         offsetChildrenHorizontal(-consumed)
+        //回收View
+        recycle(consumed, recycler)
 
         //输出children
 //        logChildCount("scrollHorizontallyBy", recycler)
@@ -109,11 +109,13 @@ class BlogLayoutManager : RecyclerView.LayoutManager() {
             //如果要填充的position超过合理范围并且最后一个View的
             //right-移动的距离 < 右边缘(width)那就要修正真实能移动的距离
             if (fillPosition >= itemCount && anchorRight - absDelta < width) {
-                return anchorRight - width
+                val fixScrolled = anchorRight - width
+                Log.d("scrollHorizontallyBy", "fill == $fixScrolled")
+                return fixScrolled
             }
 
-            //如果尾部的锚点位置加上dx还是在屏幕外，就不填充下一个View
-            if (anchorRight + absDelta > width) {
+            //如果尾部的锚点位置减去dx还是在屏幕外，就不填充下一个View
+            if (anchorRight - absDelta > width) {
                 return dx
             }
         }
@@ -140,8 +142,10 @@ class BlogLayoutManager : RecyclerView.LayoutManager() {
             }
         }
 
+        Log.d("scrollHorizontallyBy","start fillPosition == $fillPosition")
+
         //根据限定条件，不停地填充View进来
-        while (availableSpace > 0 && fillPosition < itemCount && fillPosition >= 0) {
+        while (availableSpace > 0 && (fillPosition in 0 until itemCount)) {
             val itemView = recycler.getViewForPosition(fillPosition)
 
             if (dx > 0) {
@@ -169,17 +173,25 @@ class BlogLayoutManager : RecyclerView.LayoutManager() {
                 fillPosition--
             }
 
-            availableSpace -= getDecoratedMeasuredWidth(itemView)
+            if (fillPosition in 0 until itemCount) {
+                availableSpace -= getDecoratedMeasuredWidth(itemView)
+            }
         }
 
-        if (availableSpace > 0) {
+        Log.d("scrollHorizontallyBy","end fillPosition == $fillPosition")
+        Log.d("scrollHorizontallyBy", "availableSpace == $availableSpace")
+
+        if (fillPosition < 0 || fillPosition >= itemCount) {
             if (dx > 0) {
-                return absDelta - availableSpace
+                val anchorView = getChildAt(childCount - 1)!!
+                Log.d("scrollHorizontallyBy","right == $right")
+                Log.d("scrollHorizontallyBy", "getDecoratedRight == ${getDecoratedRight(anchorView)}")
+                Log.d("scrollHorizontallyBy", "width == ${width}")
+                return getDecoratedRight(anchorView) - width
             } else {
-                return -absDelta - availableSpace
+                val anchorView = getChildAt(0)!!
+                return getDecoratedLeft(anchorView)
             }
-        } else {
-            return dx
         }
 
         return dx
@@ -189,7 +201,6 @@ class BlogLayoutManager : RecyclerView.LayoutManager() {
         dx: Int,
         recycler: RecyclerView.Recycler
     ) {
-        val absDelta = abs(dx)
         //要回收View的集合，暂存
         val recycleViews = hashSetOf<View>()
 
@@ -200,19 +211,19 @@ class BlogLayoutManager : RecyclerView.LayoutManager() {
                 val right = getDecoratedRight(child)
 
                 //itemView的right<0就是要超出屏幕要回收View
-                if (right > 0) break
+                if (right >= 0) break
                 recycleViews.add(child)
             }
         }
 
-        //dx<0就是从左滑向右，所以要回收后面的children
+        //dx<0就是从左滑向右，开始填充前面的View，所以要回收后面的children
         if (dx < 0) {
             for (i in childCount - 1 downTo 0) {
                 val child = getChildAt(i)!!
                 val left = getDecoratedLeft(child)
 
                 //itemView的left>recyclerView.width就是要超出屏幕要回收View
-                if (left < width) break
+                if (left <= width) break
                 recycleViews.add(child)
             }
         }
