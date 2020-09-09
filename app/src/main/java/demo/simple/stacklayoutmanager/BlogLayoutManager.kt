@@ -72,10 +72,10 @@ class BlogLayoutManager : RecyclerView.LayoutManager() {
         //填充View，consumed就是修复后的移动值
         val consumed = fill(dx, recycler)
         Log.d("scrollHorizontallyBy", "consumed == $consumed")
-        //移动View
-        offsetChildrenHorizontal(-consumed)
         //回收View
         recycle(consumed, recycler)
+        //移动View
+        offsetChildrenHorizontal(-consumed)
 
         //输出children
 //        logChildCount("scrollHorizontallyBy", recycler)
@@ -120,7 +120,7 @@ class BlogLayoutManager : RecyclerView.LayoutManager() {
 
         //dx<0就是手指从左滑向右，所以就要填充头部
         if (dx < 0) {
-            val  anchorView = getChildAt(0)!!
+            val anchorView = getChildAt(0)!!
             val anchorPosition = getPosition(anchorView)
             val anchorLeft = getDecoratedLeft(anchorView)
 
@@ -140,6 +140,7 @@ class BlogLayoutManager : RecyclerView.LayoutManager() {
             }
         }
 
+        //根据限定条件，不停地填充View进来
         while (availableSpace > 0 && fillPosition < itemCount && fillPosition >= 0) {
             val itemView = recycler.getViewForPosition(fillPosition)
 
@@ -171,6 +172,16 @@ class BlogLayoutManager : RecyclerView.LayoutManager() {
             availableSpace -= getDecoratedMeasuredWidth(itemView)
         }
 
+        if (availableSpace > 0) {
+            if (dx > 0) {
+                return absDelta - availableSpace
+            } else {
+                return -absDelta - availableSpace
+            }
+        } else {
+            return dx
+        }
+
         return dx
     }
 
@@ -178,14 +189,16 @@ class BlogLayoutManager : RecyclerView.LayoutManager() {
         dx: Int,
         recycler: RecyclerView.Recycler
     ) {
+        val absDelta = abs(dx)
         //要回收View的集合，暂存
         val recycleViews = hashSetOf<View>()
 
-        //dx>0就是手指从右滑向左，所以要回收前面的children
+        //dx>0就是手指从右滑向左，开始填充后面的View，所以要回收前面的children
         if (dx > 0) {
             for (i in 0 until childCount) {
                 val child = getChildAt(i)!!
                 val right = getDecoratedRight(child)
+
                 //itemView的right<0就是要超出屏幕要回收View
                 if (right > 0) break
                 recycleViews.add(child)
@@ -211,11 +224,4 @@ class BlogLayoutManager : RecyclerView.LayoutManager() {
         recycleViews.clear()
     }
 
-    override fun scrollVerticallyBy(
-        dy: Int,
-        recycler: RecyclerView.Recycler?,
-        state: RecyclerView.State?
-    ): Int {
-        return super.scrollVerticallyBy(dy, recycler, state)
-    }
 }
