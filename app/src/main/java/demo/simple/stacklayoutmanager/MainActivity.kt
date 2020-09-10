@@ -17,7 +17,7 @@ import me.simple.lm.StackLayoutManager
 
 class MainActivity : AppCompatActivity() {
 
-    private var mItemCount = 20
+    private var mItemCount = 70
     private var mReverseLayout = false
     private var mChangeDrawingOrder = false
     private var mOffset = 0

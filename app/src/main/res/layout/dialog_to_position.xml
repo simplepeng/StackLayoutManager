@@ -13,7 +13,7 @@
         android:gravity="center"
         android:inputType="number"
         android:maxLines="1"
-        tools:text="20"
+        android:text="50"
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button

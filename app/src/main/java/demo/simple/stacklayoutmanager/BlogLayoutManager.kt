@@ -1,13 +1,17 @@
 package demo.simple.stacklayoutmanager
 
+import android.graphics.PointF
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
+import androidx.recyclerview.widget.LinearSmoothScroller
 import androidx.recyclerview.widget.RecyclerView
 import kotlin.math.abs
-import kotlin.math.min
 
-class BlogLayoutManager : RecyclerView.LayoutManager() {
+class BlogLayoutManager : RecyclerView.LayoutManager(),
+    RecyclerView.SmoothScroller.ScrollVectorProvider {
+
+    private var mPendingPosition = RecyclerView.NO_POSITION
 
     override fun generateDefaultLayoutParams(): RecyclerView.LayoutParams {
         return RecyclerView.LayoutParams(
@@ -22,13 +26,26 @@ class BlogLayoutManager : RecyclerView.LayoutManager() {
 
     override fun onLayoutChildren(recycler: RecyclerView.Recycler, state: RecyclerView.State) {
 
+        var totalSpace = width - paddingRight
+
+        var currentPosition = 0
+        var fixOffset = 0
+
+        //当childCount != 0时，证明是已经填充过View的，因为有回收
+        //所以直接赋值为第一个child的position就可以
+        if (childCount != 0) {
+            currentPosition = getPosition(getChildAt(0)!!)
+            fixOffset = getDecoratedLeft(getChildAt(0)!!)
+        }
+
+        if (mPendingPosition != RecyclerView.NO_POSITION) {
+            currentPosition = mPendingPosition
+        }
+
         //轻量级的将view移除屏幕
         detachAndScrapAttachedViews(recycler)
+
         //开始填充view
-
-        var totalSpace = width - paddingRight
-        var currentPosition = 0
-
         var left = 0
         var top = 0
         var right = 0
@@ -51,6 +68,34 @@ class BlogLayoutManager : RecyclerView.LayoutManager() {
         }
         //layout完成后输出相关信息
         logChildCount("onLayoutChildren", recycler)
+
+        offsetChildrenHorizontal(fixOffset)
+    }
+
+    override fun scrollToPosition(position: Int) {
+        if (position < 0 || position >= itemCount) return
+        mPendingPosition = position
+        requestLayout()
+    }
+
+    override fun smoothScrollToPosition(
+        recyclerView: RecyclerView,
+        state: RecyclerView.State,
+        position: Int
+    ) {
+        val linearSmoothScroller =
+            LinearSmoothScroller(recyclerView.context)
+        linearSmoothScroller.targetPosition = position
+        startSmoothScroll(linearSmoothScroller)
+    }
+
+    override fun computeScrollVectorForPosition(targetPosition: Int): PointF? {
+        if (childCount == 0) {
+            return null
+        }
+        val firstChildPos = getPosition(getChildAt(0)!!)
+        val direction = if (targetPosition < firstChildPos) -1 else 1
+        return PointF(direction.toFloat(), 0f)
     }
 
     private fun logChildCount(tag: String, recycler: RecyclerView.Recycler) {
@@ -142,7 +187,7 @@ class BlogLayoutManager : RecyclerView.LayoutManager() {
             }
         }
 
-        Log.d("scrollHorizontallyBy","start fillPosition == $fillPosition")
+        Log.d("scrollHorizontallyBy", "start fillPosition == $fillPosition")
 
         //根据限定条件，不停地填充View进来
         while (availableSpace > 0 && (fillPosition in 0 until itemCount)) {
@@ -178,21 +223,21 @@ class BlogLayoutManager : RecyclerView.LayoutManager() {
             }
         }
 
-        Log.d("scrollHorizontallyBy","end fillPosition == $fillPosition")
+        Log.d("scrollHorizontallyBy", "end fillPosition == $fillPosition")
         Log.d("scrollHorizontallyBy", "availableSpace == $availableSpace")
 
-        if (fillPosition < 0 || fillPosition >= itemCount) {
-            if (dx > 0) {
-                val anchorView = getChildAt(childCount - 1)!!
-                Log.d("scrollHorizontallyBy","right == $right")
-                Log.d("scrollHorizontallyBy", "getDecoratedRight == ${getDecoratedRight(anchorView)}")
-                Log.d("scrollHorizontallyBy", "width == ${width}")
-                return getDecoratedRight(anchorView) - width
-            } else {
-                val anchorView = getChildAt(0)!!
-                return getDecoratedLeft(anchorView)
-            }
-        }
+//        if (fillPosition < 0 || fillPosition >= itemCount) {
+//            if (dx > 0) {
+//                val anchorView = getChildAt(childCount - 1)!!
+//                Log.d("scrollHorizontallyBy","right == $right")
+//                Log.d("scrollHorizontallyBy", "getDecoratedRight == ${getDecoratedRight(anchorView)}")
+//                Log.d("scrollHorizontallyBy", "width == ${width}")
+//                return getDecoratedRight(anchorView) - width
+//            } else {
+//                val anchorView = getChildAt(0)!!
+//                return getDecoratedLeft(anchorView)
+//            }
+//        }
 
         return dx
     }
@@ -234,5 +279,6 @@ class BlogLayoutManager : RecyclerView.LayoutManager() {
         }
         recycleViews.clear()
     }
+
 
 }
