@@ -13,23 +13,14 @@
 添加`jitpack`仓库
 
 ```groovy
-	allprojects {
-		repositories {
-			...
-			maven { url 'https://www.jitpack.io' }
-		}
-	}
+maven { url 'https://www.jitpack.io' }
 ```
 
 添加`StackLayoutManager`的依赖
 
 ```groovy
-	dependencies {
-	        implementation 'com.github.simplepeng:StackLayoutManager:v1.0.0'
-	}
+implementation 'com.github.simplepeng:StackLayoutManager:v1.0.0'
 ```
-
-
 
 ## 如何使用
 
